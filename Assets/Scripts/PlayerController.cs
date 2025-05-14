@@ -4,41 +4,49 @@ using UnityEngine.Rendering;
 
 public class PlayerController : MonoBehaviour
 {
-    Rigidbody rb;
+    public InputActionAsset InputActions;
+    private InputAction m_jumpAction;
+    private InputAction m_moveAction;
+    private Rigidbody rb;
+    private Vector2 m_moveInput;
+    public float moveSpeed = 5f;
+    public float jumpSpeed = 5f;
 
-    // Vector de dirección del movimiento (input del jugador)
-    Vector2 moveVector;
+    private void OnEnable()
+    {
+        InputActions.FindActionMap("Player").Enable();
+    }
 
-    [SerializeField] float speed = 10f;// Velocidad máxima horizontal
-
-    [SerializeField] float acceleration = 20f;// Tasa de aceleración/suavizado
+    private void OnDisable()
+    {
+        InputActions.FindActionMap("Player").Disable();
+    }
 
     private void Awake()
     {
+        
+        m_jumpAction = InputSystem.actions.FindAction("Jump");
+        m_moveAction = InputSystem.actions.FindAction("Move");
         rb = GetComponent<Rigidbody>();
     }
 
-    // Método llamado por el sistema de Input de Unity (Evento de Input)
-    public void InputPlayer(InputAction.CallbackContext _context){
-        moveVector = _context.ReadValue<Vector2>();
+    public void FixedUpdate(){
+        Walking();
     }
 
+    void Update(){
+        m_moveInput = m_moveAction.ReadValue<Vector2>();
 
-    // Lógica de física (se ejecuta en intervalos fijos)
-    private void FixedUpdate()
-    {
-        // 1. Calcular velocidad objetivo en eje X
-        float targetVelocityX = moveVector.x * speed;
-
-        // 2. Suavizar transición entre velocidad actual y objetivo
-        float smoothedVelocityX = Mathf.Lerp(
-            rb.linearVelocity.x,
-            targetVelocityX,
-            acceleration * Time.fixedDeltaTime
-        );
-               
-        // 3. Aplicar nueva velocidad manteniendo velocidad en Y (gravedad/saltos)
-        rb.linearVelocity = new Vector3(smoothedVelocityX, rb.linearVelocity.y, 0f);
+        if(m_jumpAction.WasPressedThisFrame()){
+            Jump();
+        }
     }
 
+    public void Jump(){
+        rb.AddForceAtPosition(new Vector3(0f,5f,0f), Vector3.up, ForceMode.Impulse);
+    }
+    private void Walking(){
+       rb.MovePosition(rb.position + new Vector3(m_moveInput.x, 0f, m_moveInput.y) * moveSpeed * Time.fixedDeltaTime);
+    }
+    
 }
